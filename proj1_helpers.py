@@ -116,38 +116,11 @@ def cross_validation_visualization(lambds, mse_tr, mse_te):
 # cleaning data (made functions)
 
 def standardize(x):
-    ''' fill your code in here...
+    ''' Returns standardized data, assuming no feature is constant.
     '''
-    centered_data = x - np.mean(x, axis=0)
+    centered_data = x - np.mean(x, axis=0)          
     std_data = centered_data / np.std(centered_data, axis=0)
-    
     return std_data
-
-def standardize_3(x):
-    """ function which accepts data matrix nxd and outputs
-    same data after normalization."""
-    row, col = x.shape
-    
-    # making mean = 0
-    mean_col = np.mean(x, axis = 0) # matrix of mean of each feature
-    #print('mean of each feature', mean_col)
-    matrix_with_means = np.ones((row,col))*mean_col
-    #print('matrix with means of each feature per colunm \n', matrix_with_means)
-    y = x - matrix_with_means # subsract mean in each col
-    
-    std = np.std(x, axis = 0) # matrix of variance of each feature
-    div_std = np.array([[1/i for i in std if i!=0]])
-    y = y*div_std
-    
-    return y
-
-def standardize_2(x):
-    """Standardize the original data set."""
-    mean_x = np.mean(x)
-    x = x - mean_x
-    std_x = np.std(x)
-    x = x / std_x
-    return x, mean_x, std_x
 
 def remove999(x):
     for i in range(x.shape[1]):
@@ -158,13 +131,14 @@ def remove999(x):
 def clean_data(x, i):
     res_x = x[x[:, 22] == i] # we choose points such that 22nd feature == i
     indices = []
-    for j in range(x.shape[1]): # features
-        if np.all(res_x.T[j] == -999): # whole column is equal to -999
+    
+    std_feature = np.std(res_x, axis = 0)
+    for i in range(len(std_feature)): # features
+        if std_feature[i] == 0: # whole column is constant
             indices.append(j)
     res_x = np.delete(res_x, indices, 1) # delete redundant features
-    print(len(indices))
     res_x = remove999(res_x) # replace remaining undefined values by mean
-    res_x = standardize(res_x)
+    res_x = standardize(res_x) # assuming no std == 0
     return res_x, indices
 
 def arraySortedOrNot(arr):
