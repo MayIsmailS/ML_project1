@@ -120,6 +120,7 @@ def standardize(x):
     '''
     centered_data = x - np.mean(x, axis=0)          
     std_data = centered_data / np.std(centered_data, axis=0)
+    
     return std_data
 
 def remove999(x):
@@ -139,6 +140,20 @@ def clean_data(x, i):
     res_x = np.delete(res_x, indices, 1) # delete redundant features
     res_x = remove999(res_x) # replace remaining undefined values by mean
     res_x = standardize(res_x) # assuming no std == 0
+    return res_x, indices
+
+def clean_data_old(x, i):
+    res_x = x[x[:, 22] == i] # we choose points such that 22nd feature == i
+    indices = []
+    
+    std_feature = np.std(res_x, axis = 0)
+    for j in range(x.shape[1]): # features
+        if np.all(res_x.T[j] == -999): # whole column is equal to -999
+            indices.append(j)
+    res_x = np.delete(res_x, indices, 1) # delete redundant features
+    print(len(indices))
+    res_x = remove999(res_x) # replace remaining undefined values by mean
+    res_x = standardize(res_x)
     return res_x, indices
 
 def arraySortedOrNot(arr):
