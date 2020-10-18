@@ -136,7 +136,7 @@ def clean_data(x, i):
     std_feature = np.std(res_x, axis = 0)
     for i in range(len(std_feature)): # features
         if std_feature[i] == 0: # whole column is constant
-            indices.append(j)
+            indices.append(i)
     res_x = np.delete(res_x, indices, 1) # delete redundant features
     res_x = remove999(res_x) # replace remaining undefined values by mean
     res_x = standardize(res_x) # assuming no std == 0
