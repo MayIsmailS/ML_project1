@@ -272,4 +272,48 @@ def accuracy_cooler(y, y_pred):
     product = y*y_pred
     errors = np.count_nonzero( product == -1) # if mistake, product will give -1
     return errors/len(y)
+
+def learning_by_stochastic_gradient_descent(y, tx, w, batch_size, gamma, gradient, cost_function):
+    """Same as stochastic_gradient_descent function but only 1 step- no max_iter parameter"""
+    for minibatch_y, minibatch_tx in batch_iter(y, tx, batch_size): # 1 epoch
+        grad = gradient(minibatch_y, minibatch_tx, w)
+        loss = cost_function(minibatch_y, minibatch_tx,w) 
+        w -= gamma*grad
+    return loss, w
+
+def least_squares_SGD(y, tx, initial_w, max_iter, gamma):
+    """Linear regression using Stochastic Gradient Descent."""
+    # parameters
+    batch_size = 1
+    gradient = lambda y,tx,w: mse_gradient(y,tx,w)
+    cost_function = lambda y,tx,w: mse_cost(y,tx,w)
+    
+    # initialising w
+    w = initial_w
+
+    # start the logistic regression
+    for iter in range(max_iter):
+        loss, w = learning_by_stochastic_gradient_descent(y, tx, w, batch_size, gamma, gradient, cost_function)
+    
+    loss = cost_function(y,tx,w) # loss of last w found
+    
+    return w, loss
+
+def logistic_regression(y, tx, initial_w, max_iter, gamma):
+    """Logistic regression using Stochastic Gradient Descent."""
+    # parameters
+    batch_size = 1
+    gradient = lambda y,tx,w: nll_gradient(y,tx,w)
+    cost_function = lambda y,tx,w: nll_cost(y,tx,w)
+    
+    # initialising w
+    w = initial_w
+
+    # start the logistic regression
+    for iter in range(max_iter):
+        loss, w = learning_by_stochastic_gradient_descent(y, tx, w, batch_size, gamma, gradient, cost_function)
+    
+    loss = cost_function(y,tx,w) # loss of last w found
+    
+    return w, loss
     
