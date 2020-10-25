@@ -1,3 +1,4 @@
+#The Higgs Boson Challenge
 ##Code architecture:
 
 implementations.py: contains the 6 functions to be implemented, as well as other useful functions like build_poly.
