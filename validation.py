@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 from helpers import *
 from plots import gradient_descent_visualization
 from ipywidgets import IntSlider, interact
-import math
 from plots import *
 from implementations import *
 
@@ -22,15 +21,17 @@ def cross_validation_rd(y, x, k_indices, k, lambda_, degree):
     loss_tr = rmse(y_tr, res_tr, w_tr)
     loss_te = rmse(y_te, res_te, w_tr)
     y_pred = predict_labels(w_tr, res_te)
-    acc = np.mean(y_pred == y_te)
+    acc = accuracy(y_pred, y_te)
     return loss_tr, loss_te, acc
 
 def cross_validation_demo_rd(y, x, degree):
     seed = 1
     k_fold = 4
     lambdas = np.logspace(-8, -1, 15)
+    
     # split data in k fold
     k_indices = build_k_indices(y, k_fold, seed)
+    
     # define lists to store the loss of training data and test data
     acc = []
     stds = []
@@ -48,6 +49,7 @@ def cross_validation_demo_rd(y, x, degree):
         acc.append(np.mean(acc_m))
         stds.append(np.std(acc_m))
     cross_validation_visualization(lambdas, acc, stds, "accuracy", "std")
+
 def cross_validation_GD(y, x, k_indices, k, gamma, max_iters):
     x_te = x[k_indices[k]]
     y_te = y[k_indices[k]]
@@ -61,11 +63,12 @@ def cross_validation_GD(y, x, k_indices, k, gamma, max_iters):
 
     mse_tr, w_tr = least_squares_GD(y_tr, x_tr, w_initial, max_iters, gamma)
     y_pred = predict_labels(w_tr, x_te)
-    acc = sum(y_pred == y_te)/len(y_te)
+    acc = accuracy(y_pred, y_te)
     return acc
 
 def cross_validation_demo_GD(y, tX, gammas, max_iter, k_fold, seed):
     k_indices = build_k_indices(y, k_fold, seed)
+    
     # define lists to store the loss of training data and test data
     acc = []
     stds = []
@@ -84,7 +87,6 @@ def cross_validation_demo_GD(y, tX, gammas, max_iter, k_fold, seed):
 def cross_validation_SGD(y, x, k_indices, k, max_iters, batch_size, gamma, lambda_, type_, i):
     """return the accuracy and test loss for subgroup k of the cross validation
     using SGD."""
-    
     indx = k_indices[k] # selecting kth group (changed from k-1 to k)
     
     # separating data (k'th subgroup in test, others used for trainning)
@@ -95,8 +97,7 @@ def cross_validation_SGD(y, x, k_indices, k, max_iters, batch_size, gamma, lambd
     y_tr = np.delete(y, indx, axis=0)
     
     # preparing data (reducing dimensionality and adding column of 1's)   
-    x_tr, _ = clean_data(x_tr, i)
-    x_te, _ = clean_data(x_te, i)
+    x_tr, x_te = clean_data(x_tr, x_te, i)
     x_tr, x_te = PCA_2(x_tr, x_te)
     y_tr, tx_tr = build_model_data(x_tr, y_tr)
     y_te, tx_te = build_model_data(x_te, y_te)
@@ -108,26 +109,34 @@ def cross_validation_SGD(y, x, k_indices, k, max_iters, batch_size, gamma, lambd
     # training model and computing w_star
     for i in range(max_iters):
         loss, w = learning_by_stochastic_gradient_descent(y_tr, tx_tr, w, batch_size, gamma, lambda_, type_)
-                
+        
         if i%50 == 0:
+            if type_ != "mse":
+                loss = loss/len(y_tr)
             print("Gradient Descent({bi}/{ti}): loss={l}".format(bi=i, ti=max_iters - 1, l=loss))
     
     # computing loss for test data and accuracy for train data
-    if type == "mse":
+    if type_ == "mse":
         loss = mse_cost(y_tr, tx_tr, w)
         
     elif type_ == "nll":
-        loss = nll_cost(y_tr, tx_tr, w)
+        loss = nll_cost(y_tr, tx_tr, w) / len(y_tr)
     
     elif type_ == "nll_p":
-        loss = nll_penalized_cost(y_tr, tx_tr, w, lambda_)
+        loss = nll_penalized_cost(y_tr, tx_tr, w, lambda_) / len(y_tr)
     
     y_te_pred = predict_labels(w, tx_te)
-    acc = sum(y_te_pred == y_te)/len(y_te) #accuracy(y_te_pred, y_te)
+    acc = accuracy(y_te_pred, y_te)
+    
     return acc, loss, w
 
-def cross_validation_demo_SGD(y, x, k_fold, seed, type_, max_iters, gammas,i,lambda_=None, batch_size=1):
-    
+def cross_validation_demo_SGD(y, x, type_, i, lambda_=None):
+    seed = 1
+    k_fold = 4
+    batch_size = 1
+    max_iters = 200 #2000
+    gammas = np.logspace(-4, 0, 30)
+
     # split data in k fold
     k_indices = build_k_indices(y, k_fold, seed)
     
@@ -154,3 +163,39 @@ def cross_validation_demo_SGD(y, x, k_fold, seed, type_, max_iters, gammas,i,lam
     cross_validation_visualization(gammas, accuracies, losses, label_1, label_2)
 
     return gammas, accuracies, losses
+
+def cross_validation_demo_reg(y, x, gammas_chosen_nll, i):
+    seed = 1
+    k_fold = 4
+    batch_size = 1
+    max_iters = 200
+    lambdas = np.logspace(-5, 0, 30)
+    
+    # split data in k fold
+    k_indices = build_k_indices(y, k_fold, seed)
+    
+    # define lists to store the loss of training data and test data
+    accuracies = []
+    losses = []
+    gamma = gammas_chosen_nll[i]
+    type_ = "nll_p"
+    
+    # cross validation (repeatedly call previous function)
+    for lambda_ in lambdas:
+        acc_tmp = []
+        losses_tmp  = []
+        
+        for fold in range(k_fold):
+            acc, loss, w = cross_validation_SGD(y, x, k_indices, fold, max_iters, batch_size, gamma, lambda_, type_, i)
+            acc_tmp.append(acc)
+            losses_tmp.append(loss)
+        
+        # plot of accuracies and losses
+        accuracies.append(np.mean(acc_tmp))
+        losses.append(np.mean(losses_tmp))
+        label_1 = "accuracies "  + str(i)
+        label_2 = "losses " + str(i)
+    
+    cross_validation_visualization(lambdas, accuracies, losses, label_1, label_2)
+
+    return lambdas, accuracies, losses
