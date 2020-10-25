@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 from helpers import *
 from plots import gradient_descent_visualization
 from ipywidgets import IntSlider, interact
-import math
 from plots import *
 
 def mse_cost(y, tx, w): # compute loss
@@ -15,9 +14,8 @@ def mse_cost(y, tx, w): # compute loss
     return loss
 
 def rmse(y, tx, w):
-    e = y - tx@w
-    mse = (1/len(y))*(e.T@e)
-    return math.sqrt(2*mse)
+    mse = mse_cost(y, tx, w)
+    return np.sqrt(2*mse)
 
 def mse_gradient(y, tx, w):#compute_gradient
     """Compute the gradient."""
@@ -34,14 +32,13 @@ def nll_cost(y, tx, w):
     """compute the cost by negative log likelihood."""
     # y containing -1,1 labels must be changed to 0,1 labels
     y[np.where(y == -1)] = 0
-
+    
     pred = sigmoid(tx.dot(w))
     loss = y.T.dot(np.log(pred)) + (1 - y).T.dot(np.log(1 - pred))
-    num_sample = len(tx)
-
+    
     y[np.where(y == 0)] = -1
-
-    return np.squeeze(- loss) / num_sample
+    
+    return np.squeeze(- loss)
 
 def nll_penalized_cost(y, tx, w, lambda_):
     """compute the cost by negative log likelihood with some penalty."""
@@ -61,37 +58,36 @@ def least_squares(y, tx):
     gram = np.transpose(tx)@tx
     b = np.transpose(tx)@y
     wstar = np.linalg.solve(gram, b)
-    e = y - tx@wstar
-    mse = (1/len(y))*(e.T@e)
+    e = mse_cost(y, tx, wstar)
     return wstar, mse
 
 def learning_by_stochastic_gradient_descent(y, tx, w, batch_size, gamma, lambda_, type_):
     """Same as stochastic_gradient_descent function but only 1 step- no max_iter parameter"""
-
+        
     # defining gradient and cost functions
-    if type == "mse":
+    if type_ == "mse":
         gradient = lambda y, tx, w: mse_gradient(y, tx, w)
         cost_function = lambda y, tx, w: mse_cost(y, tx, w)
-
+        
     elif type_ == "nll":
         gradient = lambda y, tx, w: nll_gradient(y, tx, w)
         cost_function = lambda y, tx, w: nll_cost(y, tx, w)
-
+    
     elif type_ == "nll_p":
         gradient = lambda y, tx, w: nll_gradient(y, tx, w)
         cost_function = lambda y, tx, w, lambda_: nll_penalized_cost(y, tx, w, lambda_)
-
+    
     # computing w (1 epoch of stochastic gradient descent)
     for minibatch_y, minibatch_tx in batch_iter(y, tx, batch_size):
         grad = gradient(minibatch_y, minibatch_tx, w)
         w -= gamma*grad
-
+    
     # computing loss
     if lambda_ == None:
         loss = cost_function(y, tx, w)
     else:
         loss = cost_function(y, tx, w, lambda_)
-
+        
     return loss, w
 
 def least_squares_SGD(y, tx, initial_w, max_iters, gamma):
@@ -100,12 +96,12 @@ def least_squares_SGD(y, tx, initial_w, max_iters, gamma):
     batch_size = 1
     lambda_ = None
     type_ = "mse"
-
+    
     # initialising w
     w = initial_w
 
     # start the logistic regression
-    for iter in range(max_iters):
+    for n_iter in range(max_iters):
         loss, w = learning_by_stochastic_gradient_descent(y, tx, w, batch_size, gamma, lambda_, type_)
 
     loss = mse_cost(y,tx,w) # loss of last w found
@@ -116,11 +112,14 @@ def least_squares_GD(y, tx, initial_w, max_iters, gamma):
     """Gradient descent algorithm."""
     w = np.zeros(tx.shape[1])
     loss = 0
-
+    
     for n_iter in range(max_iters):
         loss = mse_cost(y, tx, w)
         gr = mse_gradient(y, tx, w)
         w = w - gamma*gr
+    
+    loss = mse_cost(y, tx, w)
+    
     return loss, w
 
 def logistic_regression(y, tx, initial_w, max_iters, gamma):
@@ -134,7 +133,7 @@ def logistic_regression(y, tx, initial_w, max_iters, gamma):
     w = initial_w
 
     # start the logistic regression
-    for iter in range(max_iters):
+    for n_iter in range(max_iters):
         loss, w = learning_by_stochastic_gradient_descent(y, tx, w, batch_size, gamma, lambda_, type_)
 
     loss = nll_cost(y,tx,w) # loss of last w found
@@ -151,7 +150,7 @@ def reg_logistic_regression(y, tx, lambda_, initial_w, max_iters, gamma):
     w = initial_w
 
     # start the logistic regression
-    for iter in range(max_iters):
+    for n_iter in range(max_iters):
         loss, w = learning_by_stochastic_gradient_descent(y, tx, w, batch_size, gamma, lambda_, type_)
 
     loss = nll_penalized_cost(y, tx, w, lambda_) # loss of last w found
@@ -187,10 +186,11 @@ def ridge_regression(y, tx, lambda_):
     aI = lambda_*2*tx.shape[0]*np.eye(tx.shape[1])
     gram = np.transpose(tx)@tx + aI
     b = np.transpose(tx)@y
+    
     wstar = np.linalg.solve(gram, b)
-    e = y - tx@wstar
-    mse = (1/(2*len(y)))*np.transpose(e)@e
+    mse = mse_cost(y, tx, wstar)
     return wstar, mse
+
 def polynomial_regression(y, x):
     """Constructing the polynomial basis function expansion of the data,
        and then running least squares regression."""
