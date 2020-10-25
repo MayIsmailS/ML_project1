@@ -17,4 +17,4 @@ run_function_name.py: produces .csv file using the function "function_name"
 
 2-the code can be run by ./run.py from a terminal
 
-3- The submission csv file can be found in the same "res.csv"
+3- The submission csv file can be found in the same source file "res.csv"
