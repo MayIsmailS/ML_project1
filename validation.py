@@ -95,7 +95,8 @@ def cross_validation_SGD(y, x, k_indices, k, max_iters, batch_size, gamma, lambd
     y_tr = np.delete(y, indx, axis=0)
     
     # preparing data (reducing dimensionality and adding column of 1's)   
-    x_tr, x_te = clean_data(x_tr, x_te, i)
+    x_tr, _ = clean_data(x_tr, i)
+    x_te, _ = clean_data(x_te, i)
     x_tr, x_te = PCA_2(x_tr, x_te)
     y_tr, tx_tr = build_model_data(x_tr, y_tr)
     y_te, tx_te = build_model_data(x_te, y_te)
