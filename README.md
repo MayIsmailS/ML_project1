@@ -1,6 +1,6 @@
 Code architecture:
 
-implementations.py: contains the 6 functions to be implemented, as well as other useful functions like build_poly
+implementations.py: contains the 6 functions to be implemented, as well as other useful functions like build_poly.\\
 validation.py : contains the cross validation functions that we used to deduce the hyperparameters
 helpers.py: contains the functions necessary for data cleaning as well as other useful functions to upload the data and make predictions
 run.py:produces exactly the same .csv predictions which we used in our best submission
